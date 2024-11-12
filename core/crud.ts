@@ -1,15 +1,17 @@
 import fs from "fs"
-import { Interface } from "readline";
+import { v4 as uuid } from "uuid";
 const DB_FILE_PATH = "./core/db";
 interface Todo {
+    id: string;
     date: string;
     content: string;
     done: boolean;
 }
 
 
-function create(content: string, file_path: string) {
+function create(content: string, file_path: string): Todo {
     const todo: Todo = {
+        id: uuid(),
         date: new Date().toISOString(),
         content,
         done: false,
@@ -23,6 +25,8 @@ function create(content: string, file_path: string) {
     fs.writeFileSync(file_path, JSON.stringify({
         todos,
     }, null, 2));
+
+    return todo;
 }
 
 function read(file_path: string): Array<Todo> {
@@ -38,7 +42,36 @@ function CLEAR_DB(file_path: string) {
     fs.writeFileSync(file_path, "");
 }
 
+function update(id: string, file_path: string, partialTodo: Partial<Todo>): Todo {
+    let updatedTodo;
+    const todos = read(file_path);
+    const todoIndex = todos.findIndex(e => e.id === id)
+
+    if (todoIndex === -1) {
+        throw new Error(`Todo with id ${id} not found`);
+    }
+
+    const existingTodo = todos[todoIndex];
+
+    updatedTodo = Object.assign(existingTodo, partialTodo)
+
+    // Salvar as alterações de volta no arquivo
+    fs.writeFileSync(file_path, JSON.stringify({ todos }, null, 2));
+    return updatedTodo
+}
+
+function updateContentById(id: string, file_path: string, content: string): Todo {
+    return update(id, file_path, {
+        content,
+    })
+}
+
 CLEAR_DB(DB_FILE_PATH);
-create("O primeiro conteudo", DB_FILE_PATH);
-create("O segundo conteudo", DB_FILE_PATH);
+create("O primeiro conteudo de mesmo content", DB_FILE_PATH);
+create("O primeiro conteudo de mesmo content", DB_FILE_PATH);
+const terceiraTodo = create("O segundo conteudo", DB_FILE_PATH);
+// update(terceiraTodo.id, DB_FILE_PATH, {
+//     content: "O segundo conteudo atualizadissimo mlk",
+// });
+updateContentById(terceiraTodo.id, DB_FILE_PATH, "Update so do content né")
 console.log(read(DB_FILE_PATH));
